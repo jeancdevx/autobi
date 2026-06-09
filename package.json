@@ -1,0 +1,70 @@
+{
+  "name": "autobi",
+  "version": "1.0.0",
+  "description": "Star schema seeder para el proyecto AutoBI - Métodos Cuantitativos",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "clean": "tsx src/cleaner.ts",
+    "seed:schema": "tsx src/schema.seed.ts",
+    "seed:all": "tsx src/manager.seed.ts",
+    "seed:tiempo": "tsx src/entities/d_tiempo.seed.ts",
+    "seed:cliente": "tsx src/entities/d_cliente.seed.ts",
+    "seed:ubicacion": "tsx src/entities/d_ubicacion.seed.ts",
+    "seed:empleado": "tsx src/entities/d_empleado.seed.ts",
+    "seed:concesionaria": "tsx src/entities/d_concesionaria.seed.ts",
+    "seed:estado": "tsx src/entities/d_estado_venta.seed.ts",
+    "seed:vehiculo": "tsx src/entities/d_vehiculo.seed.ts",
+    "seed:hventa": "tsx src/entities/h_venta.seed.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{tsx,js,mjs}": [
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [],
+  "author": "jeancdevx",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.5.2",
+      "onFail": "download"
+    }
+  },
+  "dependencies": {
+    "dotenv": "17.4.2",
+    "mysql2": "3.22.5",
+    "papaparse": "5.5.3"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.0.2",
+    "@commitlint/config-conventional": "21.0.2",
+    "@eslint/js": "10.0.1",
+    "@ianvs/prettier-plugin-sort-imports": "4.7.1",
+    "@types/node": "25.9.2",
+    "@types/papaparse": "5.5.2",
+    "eslint": "10.4.1",
+    "globals": "17.6.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.7",
+    "prettier": "3.8.3",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.61.0"
+  }
+}
