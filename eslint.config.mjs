@@ -25,7 +25,7 @@ export default defineConfig([
       }
     },
     rules: {
-      'no-console': 'warn',
+      'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
