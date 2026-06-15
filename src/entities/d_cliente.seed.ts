@@ -1,4 +1,5 @@
 import { pool } from '../config'
+import { TIPO_CLIENTE_ID_MAP } from './d_tipo_cliente.seed'
 
 const NOMBRES = [
   'Carlos',
@@ -25,22 +26,7 @@ const NOMBRES = [
   'Fernanda',
   'Sergio',
   'Gabriela',
-  'Diego',
-  'Alejandra',
-  'Fernando',
-  'Monica',
-  'Oscar',
-  'Claudia',
-  'Alberto',
-  'Rosa',
-  'Héctor',
-  'Diana',
-  'Raúl',
-  'Natalia',
-  'Ernesto',
-  'Verónica',
-  'Gustavo',
-  'Silvia'
+  'Diego'
 ]
 const APELLIDOS = [
   'García',
@@ -64,20 +50,7 @@ const APELLIDOS = [
   'Castillo',
   'Ramos',
   'Wilson',
-  'Johnson',
-  'Smith',
-  'Brown',
-  'Davis',
-  'Miller',
-  'Anderson',
-  'Taylor',
-  'Thomas',
-  'Jackson',
-  'White',
-  'Harris',
-  'Martin',
-  'Thompson',
-  'Moore'
+  'Smith'
 ]
 const TIPOS = ['Particular', 'Empresa', 'Flotilla', 'Arrendamiento']
 const REFS = [
@@ -89,43 +62,49 @@ const REFS = [
   'Feria Automotriz'
 ]
 
-function rand<T>(arr: T[]): T {
+const rand = <T>(arr: T[]): T => {
   return arr[Math.floor(Math.random() * arr.length)]
 }
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+const randInt = (a: number, b: number): number => {
+  return Math.floor(Math.random() * (b - a + 1)) + a
 }
-function padTwo(n: number): string {
+const pad = (n: number): string => {
   return String(n).padStart(2, '0')
 }
 
-export async function seedCliente(): Promise<void> {
+export const seedCliente = async (): Promise<void> => {
   const conn = await pool.getConnection()
   try {
     console.log('🌱 Seeding d_cliente...')
 
-    const rows: [number, string, string, string, string, string, string][] = []
+    const rows: [
+      number,
+      string,
+      string,
+      number,
+      string,
+      string,
+      string,
+      string
+    ][] = []
 
     for (let i = 1; i <= 500; i++) {
+      const tipo = rand(TIPOS)
+      const tipoId = TIPO_CLIENTE_ID_MAP[tipo] ?? 1
       const nombre = `${rand(NOMBRES)} ${rand(APELLIDOS)}`
       const doc = String(randInt(10000000, 99999999))
       const tel = `+1 ${randInt(200, 999)}-${randInt(100, 999)}-${randInt(1000, 9999)}`
-      const ano = randInt(2010, 2014)
-      const mes = randInt(1, 12)
-      const dia = randInt(1, 28)
-      const fecha = `${ano}-${padTwo(mes)}-${padTwo(dia)}`
-
-      rows.push([i, nombre, rand(TIPOS), doc, tel, rand(REFS), fecha])
+      const fecha = `${randInt(2010, 2014)}-${pad(randInt(1, 12))}-${pad(randInt(1, 28))}`
+      rows.push([i, nombre, tipo, tipoId, doc, tel, rand(REFS), fecha])
     }
 
     await conn.query(
       `INSERT INTO d_cliente
-       (cliente_id, nombre_completo_cliente, tipo_cliente,
+       (cliente_id, nombre_completo_cliente, tipo_cliente, tipo_cliente_id,
         documento_identidad, telefono, referido_por, fecha_primer_compra)
        VALUES ?`,
       [rows]
     )
-
     console.log(`✅ d_cliente: ${rows.length} registros insertados`)
   } catch (err) {
     console.error('❌ Error en d_cliente:', err)
