@@ -35,16 +35,16 @@ const ESTADOS = [
   'WI'
 ]
 
-function rand<T>(arr: T[]): T {
+const rand = <T>(arr: T[]): T => {
   return arr[Math.floor(Math.random() * arr.length)]
 }
-function randInt(min: number, max: number): number {
+const randInt = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
-function randFloat(min: number, max: number, decimals = 1): number {
+const randFloat = (min: number, max: number, decimals = 1): number => {
   return parseFloat((Math.random() * (max - min) + min).toFixed(decimals))
 }
-function cleanName(name: string): string {
+const cleanName = (name: string): string => {
   return name
     .split(' ')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
@@ -57,8 +57,9 @@ function cleanName(name: string): string {
 // Exportado para que h_venta pueda mapear seller → concesionaria_id
 export const SELLER_ID_MAP: Record<string, number> = {}
 
-export async function seedConcesionaria(): Promise<void> {
+export const seedConcesionaria = async (): Promise<void> => {
   const conn = await pool.getConnection()
+
   try {
     console.log('🌱 Seeding d_concesionaria...')
 
