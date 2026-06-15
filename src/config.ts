@@ -6,10 +6,14 @@ import { createPool, type Pool } from 'mysql2/promise'
 
 dotenv.config({ path: '.env' })
 
+const mysqlSsl = process.env.MYSQL_SSL?.trim().toLowerCase()
+const sslExplicitlyEnabled = mysqlSsl === 'true' || mysqlSsl === '1'
+const sslExplicitlyDisabled = mysqlSsl === 'false' || mysqlSsl === '0'
 const useSsl =
-  process.env.MYSQL_SSL?.toLowerCase() === 'true' ||
-  process.env.MYSQL_SSL?.toLowerCase() === '1' ||
-  Boolean(process.env.MYSQL_SSL_CA)
+  sslExplicitlyEnabled ||
+  (!sslExplicitlyDisabled &&
+    mysqlSsl === undefined &&
+    Boolean(process.env.MYSQL_SSL_CA))
 
 const ssl = useSsl
   ? {
