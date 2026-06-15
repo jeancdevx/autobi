@@ -4,8 +4,50 @@ import * as path from 'path'
 import Papa from 'papaparse'
 
 import { pool } from '../config'
+import { CARROCERIA_ID_MAP } from './d_carroceria.seed'
+import { COLOR_ID_MAP } from './d_color.seed'
+import { MARCA_ID_MAP } from './d_marca.seed'
+import { TRANSMISION_ID_MAP } from './d_transmision.seed'
 
-// Mapas de normalización
+const VALID_COLORS = new Set([
+  'white',
+  'gray',
+  'black',
+  'red',
+  'silver',
+  'blue',
+  'brown',
+  'beige',
+  'purple',
+  'burgundy',
+  'gold',
+  'green',
+  'off-white',
+  'orange',
+  'charcoal',
+  'yellow',
+  'pink',
+  'turquoise',
+  'lime'
+])
+const VALID_INTERIORS = new Set([
+  'beige',
+  'black',
+  'blue',
+  'brown',
+  'burgundy',
+  'gold',
+  'gray',
+  'green',
+  'off-white',
+  'orange',
+  'purple',
+  'red',
+  'silver',
+  'tan',
+  'white',
+  'yellow'
+])
 const MAKE_MAP: Record<string, string> = {
   acura: 'Acura',
   audi: 'Audi',
@@ -51,7 +93,6 @@ const MAKE_MAP: Record<string, string> = {
   vw: 'Volkswagen',
   volvo: 'Volvo'
 }
-
 const PAIS_ORIGEN: Record<string, string> = {
   Acura: 'Japón',
   Audi: 'Alemania',
@@ -79,6 +120,7 @@ const PAIS_ORIGEN: Record<string, string> = {
   Mitsubishi: 'Japón',
   Nissan: 'Japón',
   Oldsmobile: 'EE.UU.',
+  Otro: 'Desconocido',
   Plymouth: 'EE.UU.',
   Pontiac: 'EE.UU.',
   Porsche: 'Alemania',
@@ -87,10 +129,8 @@ const PAIS_ORIGEN: Record<string, string> = {
   Suzuki: 'Japón',
   Toyota: 'Japón',
   Volkswagen: 'Alemania',
-  Volvo: 'Suecia',
-  Default: 'EE.UU.'
+  Volvo: 'Suecia'
 }
-
 const SEGMENTO: Record<string, string> = {
   Acura: 'Premium',
   Audi: 'Premium',
@@ -118,6 +158,7 @@ const SEGMENTO: Record<string, string> = {
   Mitsubishi: 'Masivo',
   Nissan: 'Masivo',
   Oldsmobile: 'Masivo',
+  Otro: 'Otro',
   Plymouth: 'Masivo',
   Pontiac: 'Masivo',
   Porsche: 'Lujo',
@@ -126,66 +167,24 @@ const SEGMENTO: Record<string, string> = {
   Suzuki: 'Económico',
   Toyota: 'Masivo',
   Volkswagen: 'Masivo',
-  Volvo: 'Premium',
-  Default: 'Masivo'
+  Volvo: 'Premium'
 }
-
 const DESC_CARROCERIA: Record<string, string> = {
-  SUV: 'Vehículo utilitario deportivo, alto y espacioso',
-  Sedán: 'Sedán de 4 puertas, uso familiar o ejecutivo',
-  Coupé: 'Cupé de 2 puertas, diseño deportivo',
-  Hatchback: 'Hatchback con maletero integrado al habitáculo',
-  Wagon: 'Familiar/station wagon, maletero amplio',
-  Convertible: 'Descapotable, techo retráctil',
-  'Van/Minivan': 'Minivan o furgoneta familiar, alta capacidad',
-  Pickup: 'Camioneta con plataforma de carga abierta',
-  Otro: 'Otro tipo de carrocería'
+  SUV: 'Vehículo utilitario deportivo de tracción elevada',
+  Sedán: 'Automóvil de 3 volúmenes y 4 puertas de uso general',
+  Coupé: 'Vehículo de 2 puertas con diseño deportivo y techo fijo',
+  Hatchback: 'Compacto con puerta trasera que incluye la luneta',
+  Wagon: 'Familiar con carrocería extendida y maletero integrado',
+  Convertible: 'Vehículo descapotable con techo retráctil',
+  'Van/Minivan': 'Furgoneta familiar de alta capacidad de pasajeros',
+  Pickup: 'Camioneta con cabina y plataforma de carga abierta',
+  Otro: 'Carrocería especial no clasificada'
 }
 
-const VALID_COLORS = new Set([
-  'white',
-  'gray',
-  'black',
-  'red',
-  'silver',
-  'blue',
-  'brown',
-  'beige',
-  'purple',
-  'burgundy',
-  'gold',
-  'green',
-  'off-white',
-  'orange',
-  'charcoal',
-  'yellow',
-  'pink',
-  'turquoise',
-  'lime'
-])
-const VALID_INTERIORS = new Set([
-  'beige',
-  'black',
-  'blue',
-  'brown',
-  'burgundy',
-  'gold',
-  'gray',
-  'green',
-  'off-white',
-  'orange',
-  'purple',
-  'red',
-  'silver',
-  'tan',
-  'white',
-  'yellow'
-])
-
-export function normMake(raw: string): string {
+export const normMake = (raw: string): string => {
   return MAKE_MAP[raw?.toLowerCase()?.trim()] ?? 'Otro'
 }
-export function normBody(raw: string): string {
+export const normBody = (raw: string): string => {
   const b = raw?.toLowerCase() ?? ''
   if (b.includes('suv')) return 'SUV'
   if (b.includes('sedan')) return 'Sedán'
@@ -203,22 +202,20 @@ export function normBody(raw: string): string {
     return 'Pickup'
   return 'Otro'
 }
-export function normTrans(raw: string): string {
-  const t = raw?.toLowerCase() ?? ''
-  if (t === 'manual') return 'Manual'
-  return 'Automática'
+export const normTrans = (raw: string): string => {
+  return raw?.toLowerCase() === 'manual' ? 'Manual' : 'Automática'
 }
-export function normColor(raw: string): string {
-  return VALID_COLORS.has(raw?.toLowerCase()) ? capitalize(raw) : 'Otro'
+export const normColor = (raw: string): string => {
+  const r = raw?.toLowerCase()
+  if (!VALID_COLORS.has(r)) return 'Otro'
+  return r.charAt(0).toUpperCase() + r.slice(1)
 }
-export function normInterior(raw: string): string {
-  return VALID_INTERIORS.has(raw?.toLowerCase()) ? capitalize(raw) : 'Otro'
-}
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+export const normInterior = (raw: string): string => {
+  const r = raw?.toLowerCase()
+  if (!VALID_INTERIORS.has(r)) return 'Otro'
+  return r.charAt(0).toUpperCase() + r.slice(1)
 }
 
-// Exportado para que h_venta pueda resolver vehiculo_id
 export const VEHICULO_ID_MAP: Map<string, number> = new Map()
 
 type RawRow = {
@@ -232,15 +229,15 @@ type RawRow = {
   interior: string
 }
 
-export async function seedVehiculo(): Promise<void> {
+export const seedVehiculo = async (): Promise<void> => {
   const conn = await pool.getConnection()
+
   try {
-    console.log('🌱 Seeding d_vehiculo (esto puede tardar un momento)...')
+    console.log('🌱 Seeding d_vehiculo (puede tardar un momento)...')
 
     const csvPath = path.resolve(process.cwd(), 'car_prices.csv')
-    if (!fs.existsSync(csvPath)) {
+    if (!fs.existsSync(csvPath))
       throw new Error(`No se encontró car_prices.csv en: ${csvPath}`)
-    }
 
     const content = fs.readFileSync(csvPath, 'utf-8')
     const parsed = Papa.parse<RawRow>(content, {
@@ -248,20 +245,23 @@ export async function seedVehiculo(): Promise<void> {
       skipEmptyLines: true
     })
 
-    // Deduplicar combinaciones únicas
     const seen = new Map<string, number>()
     const rows: [
       number,
       string,
+      number,
       string,
       string,
       string,
       string,
       number,
       string,
+      number,
       string,
       string,
+      number,
       string,
+      number,
       string
     ][] = []
     let id = 1
@@ -275,7 +275,6 @@ export async function seedVehiculo(): Promise<void> {
       const color = normColor(row.color)
       const interior = normInterior(row.interior)
       const year = parseInt(row.year) || 2014
-
       if (!make || !model) continue
 
       const key = `${make}|${model}|${trim_}|${body}|${trans}|${color}|${interior}|${year}`
@@ -287,40 +286,48 @@ export async function seedVehiculo(): Promise<void> {
       seen.set(key, id)
       VEHICULO_ID_MAP.set(key, id)
 
+      const marcaId = MARCA_ID_MAP[make] ?? 27 // fallback = Otro
+      const carroId = CARROCERIA_ID_MAP[body] ?? 4 // fallback = Otro
+      const transId = TRANSMISION_ID_MAP[trans] ?? 1
+      const colorId = COLOR_ID_MAP[color] ?? 13 // fallback = Otro
+
       rows.push([
         id++,
         make,
+        marcaId,
         PAIS_ORIGEN[make] ?? 'EE.UU.',
         SEGMENTO[make] ?? 'Masivo',
         model,
         trim_,
         year,
         body,
+        carroId,
         DESC_CARROCERIA[body] ?? 'Sin descripción',
         trans,
+        transId,
         color,
+        colorId,
         interior
       ])
     }
 
-    // Insertar en lotes de 500 para no saturar MySQL
     const BATCH = 500
     for (let i = 0; i < rows.length; i += BATCH) {
-      const chunk = rows.slice(i, i + BATCH)
       await conn.query(
         `INSERT INTO d_vehiculo
-         (vehiculo_id, marca, pais_origen_marca, segmento_marca,
+         (vehiculo_id,
+          marca, marca_id, pais_origen_marca, segmento_marca,
           modelo, version_trim, anio_fabricacion,
-          tipo_carroceria, descripcion_carroceria,
-          tipo_transmision, color_exterior, color_interior)
+          tipo_carroceria, carroceria_id, descripcion_carroceria,
+          tipo_transmision, transmision_id,
+          color_exterior, color_id, color_interior)
          VALUES ?`,
-        [chunk]
+        [rows.slice(i, i + BATCH)]
       )
       process.stdout.write(
         `\r  → ${Math.min(i + BATCH, rows.length)} / ${rows.length}`
       )
     }
-
     console.log(`\n✅ d_vehiculo: ${rows.length} registros insertados`)
   } catch (err) {
     console.error('❌ Error en d_vehiculo:', err)
