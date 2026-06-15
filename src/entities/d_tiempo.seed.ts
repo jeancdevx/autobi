@@ -38,8 +38,9 @@ const TRIMESTRE: Record<number, number> = {
   12: 4
 }
 
-export async function seedTiempo(): Promise<void> {
+export const seedTiempo = async (): Promise<void> => {
   const conn = await pool.getConnection()
+
   try {
     console.log('🌱 Seeding d_tiempo...')
 
