@@ -64,21 +64,22 @@ const CARGOS = [
 ]
 const METAS = [5, 8, 10, 12, 15]
 
-function rand<T>(arr: T[]): T {
+const rand = <T>(arr: T[]): T => {
   return arr[Math.floor(Math.random() * arr.length)]
 }
-function randInt(min: number, max: number): number {
+const randInt = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
-function randFloat(min: number, max: number, decimals = 2): number {
+const randFloat = (min: number, max: number, decimals = 2): number => {
   return parseFloat((Math.random() * (max - min) + min).toFixed(decimals))
 }
 
 // Exportado para que h_venta pueda calcular comisiones
 export const EMPLEADO_COMISIONES: number[] = []
 
-export async function seedEmpleado(): Promise<void> {
+export const seedEmpleado = async (): Promise<void> => {
   const conn = await pool.getConnection()
+
   try {
     console.log('🌱 Seeding d_empleado...')
 
