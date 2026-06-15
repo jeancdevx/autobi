@@ -8,8 +8,9 @@ const ESTADOS = [
   { id: 5, descripcion: 'Devuelta', tipo: 'Final' }
 ]
 
-export async function seedEstadoVenta(): Promise<void> {
+export const seedEstadoVenta = async (): Promise<void> => {
   const conn = await pool.getConnection()
+
   try {
     console.log('🌱 Seeding d_estado_venta...')
 
