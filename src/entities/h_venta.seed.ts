@@ -4,6 +4,8 @@ import * as path from 'path'
 import Papa from 'papaparse'
 
 import { pool } from '../config'
+import { getCondicionId } from './d_condicion.seed'
+import { getRangoPrecioId } from './d_rango_precio.seed'
 import { UBICACION_ID_MAP } from './d_ubicacion.seed'
 import {
   normBody,
@@ -51,20 +53,14 @@ const VALID_STATES = new Set([
   'wa',
   'wi'
 ])
+const ESTADO_IDS = [1, 1, 1, 2, 3, 4, 5] // Completada con mayor peso
 
-// Mapea fecha del CSV → tiempo_id
-function parseFecha(raw: string): string {
+const parseFecha = (raw: string): string => {
   try {
-    const parts = raw.trim().split(' ')
-    // Formato: "Tue Dec 16 2014 12:30:00 GMT-0800 (PST)"
-    if (parts.length >= 4) {
-      const day = parts[2].padStart(2, '0')
-      const mon = parts[1]
-      const year = parts[3]
-      const date = new Date(`${day} ${mon} ${year}`)
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().slice(0, 10)
-      }
+    const p = raw.trim().split(' ')
+    if (p.length >= 4) {
+      const d = new Date(`${p[2]} ${p[1]} ${p[3]}`)
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10)
     }
   } catch {
     /* fallback */
@@ -72,22 +68,15 @@ function parseFecha(raw: string): string {
   return '2014-06-15'
 }
 
-// Genera tiempo_id a partir de fecha string "YYYY-MM-DD"
-// d_tiempo empieza en 2014-01-01 (tiempo_id = 1)
-function fechaToTiempoId(fecha: string): number {
+const fechaToTiempoId = (fecha: string): number => {
   const base = new Date('2014-01-01').getTime()
   const curr = new Date(fecha).getTime()
-  const diff = Math.floor((curr - base) / 86400000) + 1
-  // Clamp dentro del rango 2014-01-01 → 2015-12-31 (730 días)
-  return Math.max(1, Math.min(diff, 730))
+  return Math.max(1, Math.min(Math.floor((curr - base) / 86400000) + 1, 730))
 }
 
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+const randInt = (a: number, b: number): number => {
+  return Math.floor(Math.random() * (b - a + 1)) + a
 }
-
-// Pesos para d_estado_venta: Completada(1) prevalece
-const ESTADO_IDS = [1, 1, 1, 2, 3, 4, 5]
 
 type RawRow = {
   year: string
@@ -108,38 +97,33 @@ type RawRow = {
   seller: string
 }
 
-export async function seedHVenta(
+export const seedHVenta = async (
   sellerIdMap: Record<string, number>
-): Promise<void> {
+): Promise<void> => {
   const conn = await pool.getConnection()
+
   try {
     console.log('🌱 Seeding h_venta...')
 
     const csvPath = path.resolve(process.cwd(), 'car_prices.csv')
-    if (!fs.existsSync(csvPath)) {
+    if (!fs.existsSync(csvPath))
       throw new Error(`No se encontró car_prices.csv en: ${csvPath}`)
-    }
 
-    const content = fs.readFileSync(csvPath, 'utf-8')
-    const parsed = Papa.parse<RawRow>(content, {
+    const parsed = Papa.parse<RawRow>(fs.readFileSync(csvPath, 'utf-8'), {
       header: true,
       skipEmptyLines: true
     })
 
-    // Filtrar filas válidas
     const valid = parsed.data.filter(
       r => r.vin && r.sellingprice && VALID_STATES.has(r.state?.toLowerCase())
     )
-
-    // Tomar muestra de 5000 registros
-    const sample: RawRow[] = []
     const step = Math.floor(valid.length / 5000)
-    for (let i = 0; i < valid.length && sample.length < 5000; i += step) {
-      sample.push(valid[i])
-    }
+    const sample = valid.filter((_, i) => i % step === 0).slice(0, 5000)
 
     const rows: [
       string,
+      number,
+      number,
       number,
       number,
       number,
@@ -180,8 +164,9 @@ export async function seedHVenta(
       const mmr = parseFloat(row.mmr) || 0
       const precio = parseFloat(row.sellingprice) || 0
       const odo = (parseFloat(row.odometer) || 0) * 1.60934
-      const cond = parseFloat(row.condition) || 3.0
-      // Comisión fija promedio 2.5% sobre precio de venta
+      const cond = parseFloat(row.condition) || 30
+      const condId = getCondicionId(cond)
+      const rangoId = getRangoPrecioId(precio)
       const comision = parseFloat((precio * 0.025).toFixed(2))
       const diff = parseFloat((precio - mmr).toFixed(2))
 
@@ -194,6 +179,8 @@ export async function seedHVenta(
         clienteId,
         empleadoId,
         estadoId,
+        condId,
+        rangoId,
         parseFloat(mmr.toFixed(2)),
         parseFloat(precio.toFixed(2)),
         parseFloat(odo.toFixed(2)),
@@ -204,24 +191,21 @@ export async function seedHVenta(
       ])
     }
 
-    // Insertar en lotes de 250
     const BATCH = 250
     for (let i = 0; i < rows.length; i += BATCH) {
-      const chunk = rows.slice(i, i + BATCH)
       await conn.query(
         `INSERT INTO h_venta
          (vin, vehiculo_id, tiempo_id, ubicacion_id, concesionaria_id,
-          cliente_id, empleado_id, estado_venta_id,
-          precio_mercado_mmr, precio_venta, odometro_km,
-          condicion_vehiculo, comision_usd, diferencia_vs_mercado, fecha_venta)
+          cliente_id, empleado_id, estado_venta_id, condicion_id, rango_precio_id,
+          precio_mercado_mmr, precio_venta, odometro_km, condicion_vehiculo,
+          comision_usd, diferencia_vs_mercado, fecha_venta)
          VALUES ?`,
-        [chunk]
+        [rows.slice(i, i + BATCH)]
       )
       process.stdout.write(
         `\r  → ${Math.min(i + BATCH, rows.length)} / ${rows.length}`
       )
     }
-
     console.log(`\n✅ h_venta: ${rows.length} registros insertados`)
   } catch (err) {
     console.error('❌ Error en h_venta:', err)
@@ -232,10 +216,8 @@ export async function seedHVenta(
 }
 
 if (require.main === module) {
-  // Si se ejecuta directamente, necesita cargar el mapa de vehículos primero
   ;(async (): Promise<void> => {
     await seedVehiculo()
-    // Cargar seller map desde CSV
     const { seedConcesionaria, SELLER_ID_MAP } =
       await import('./d_concesionaria.seed')
     await seedConcesionaria()
