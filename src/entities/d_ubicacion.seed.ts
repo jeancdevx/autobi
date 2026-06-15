@@ -42,8 +42,9 @@ export const UBICACION_ID_MAP: Record<string, number> = Object.fromEntries(
   UBICACIONES.map((u, i) => [u.codigo.toLowerCase(), i + 1])
 )
 
-export async function seedUbicacion(): Promise<void> {
+export const seedUbicacion = async (): Promise<void> => {
   const conn = await pool.getConnection()
+
   try {
     console.log('🌱 Seeding d_ubicacion...')
 
